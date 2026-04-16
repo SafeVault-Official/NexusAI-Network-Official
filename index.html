@@ -8,6 +8,86 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!--
+      Temporary GH Pages / base-path debug script.
+      Enable by visiting: https://<your-site>/?debugReactBoot=1
+    -->
+    <script>
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        if (!params.has('debugReactBoot')) return;
+
+        const root = document.getElementById('root');
+        const style =
+          'position:fixed;inset:0 auto auto 0;max-width:min(92vw,840px);max-height:50vh;overflow:auto;' +
+          'z-index:2147483647;background:#0b1020;color:#d6e1ff;border:1px solid #3a4f87;' +
+          'padding:12px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;';
+
+        const panel = document.createElement('pre');
+        panel.id = 'react-boot-debug';
+        panel.setAttribute('style', style);
+        panel.textContent = '[debug] React boot debugger enabled\n';
+        document.body.appendChild(panel);
+
+        const log = (...parts) => {
+          const line = parts
+            .map((p) => {
+              if (typeof p === 'string') return p;
+              try {
+                return JSON.stringify(p);
+              } catch {
+                return String(p);
+              }
+            })
+            .join(' ');
+          panel.textContent += `${line}\n`;
+          console.log('[react-boot-debug]', ...parts);
+        };
+
+        const scripts = Array.from(document.scripts).map((s) => ({
+          type: s.type || 'classic',
+          src: s.src || '(inline)',
+        }));
+
+        log('time:', new Date().toISOString());
+        log('href:', window.location.href);
+        log('origin:', window.location.origin);
+        log('pathname:', window.location.pathname);
+        log('baseURI:', document.baseURI);
+        log('root #root exists:', Boolean(root));
+        log('root children count before React mounts:', root ? root.childElementCount : 'n/a');
+        log('scripts found:', scripts);
+
+        window.addEventListener('error', (event) => {
+          log('window.error:', {
+            message: event.message,
+            file: event.filename,
+            line: event.lineno,
+            col: event.colno,
+          });
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+          log('unhandledrejection:', String(event.reason));
+        });
+
+        const observer = new MutationObserver(() => {
+          log('root children count changed:', root ? root.childElementCount : 'n/a');
+        });
+        if (root) observer.observe(root, { childList: true, subtree: true });
+
+        setTimeout(() => {
+          const hasVisibleContent =
+            !!root && (root.children.length > 0 || (root.textContent || '').trim().length > 0);
+          log('after 4s, root has visible content:', hasVisibleContent);
+          if (!hasVisibleContent) {
+            log('hint: If script/network errors above include /assets/* 404s, your Vite base path or GH Pages path is likely incorrect.');
+          }
+        }, 4000);
+      })();
+    </script>
+
     <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>
